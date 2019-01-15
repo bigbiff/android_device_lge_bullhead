@@ -5,3 +5,29 @@ on boot
     write /sys/devices/system/cpu/cpu3/cpufreq/scaling_max_freq 960000
     write /sys/devices/system/cpu/cpu4/cpufreq/scaling_max_freq 960000
     write /sys/devices/system/cpu/cpu5/cpufreq/scaling_max_freq 960000
+service sbinqseecomd /sbin/qseecomd
+    oneshot
+    disabled
+    user root
+    group root
+    seclabel u:r:recovery:s0
+
+service pulldecryptfiles /sbin/pulldecryptfiles.sh
+    oneshot
+    disabled
+    user root
+    group root
+    seclabel u:r:recovery:s0
+
+on fs
+    # needed to make qseecomd work in recovery
+    symlink /dev/block/platform/soc.0/f9824900.sdhci /dev/block/bootdevice
+    chmod 0660 /dev/qseecom
+    chown system drmrpc /dev/qseecom
+    chmod 0664 /dev/ion
+    chown system system /dev/ion
+    start pulldecryptfiles
+    install_keyring
+
+on property:ro.crypto.state=encrypted
+start sbinqseecomd
